@@ -1,0 +1,581 @@
+\documentclass[twoside,11pt]{article}
+
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+\usepackage{jmlr2e}
+
+% Definitions of handy macros can go here
+
+\usepackage{subcaption}
+\usepackage{tikz}
+% \usetikzlibrary{positioning, automata, arrows}
+\usepackage{tikz-cd}
+\usepackage{pgfplots}
+\usepackage{amsmath}
+\usepackage{cleveref}
+
+\usepackage{todonotes}
+\setuptodonotes{inline}
+
+\usepackage{csquotes}
+
+\usetikzlibrary{
+  arrows.meta,                        % for arrow tips
+  backgrounds,                        % for background layer
+  ext.paths.ortho,                    % for ortho paths
+  ext.positioning-plus,               % for 
+  ext.node-families.shapes.geometric, % loads ext.node-families and
+% shapes.geometric,                   % for ellipse
+  calc}                               % for ($<calculations>$)
+\pgfplotsset{compat=newest}
+\usepgfplotslibrary{patchplots}
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{%
+    layers/standard/.define layer set={%
+        background,axis background,axis grid,axis ticks,axis lines,axis tick labels,pre main,main,axis descriptions,axis foreground%
+    }{
+        grid style={/pgfplots/on layer=axis grid},%
+        tick style={/pgfplots/on layer=axis ticks},%
+        axis line style={/pgfplots/on layer=axis lines},%
+        label style={/pgfplots/on layer=axis descriptions},%
+        legend style={/pgfplots/on layer=axis descriptions},%
+        title style={/pgfplots/on layer=axis descriptions},%
+        colorbar style={/pgfplots/on layer=axis descriptions},%
+        ticklabel style={/pgfplots/on layer=axis tick labels},%
+        axis background@ style={/pgfplots/on layer=axis background},%
+        3d box foreground style={/pgfplots/on layer=axis foreground},%
+    },
+}
+
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary{polar}
+\usepgfplotslibrary{smithchart}
+\usepgfplotslibrary{statistics}
+\usepgfplotslibrary{dateplot}
+\usepgfplotslibrary{ternary}
+
+\tikzset{
+  basic box/.style={
+    shape=rectangle, rounded corners, align=center, draw=#1,very thick},
+  header node/.style={
+    node family/width=header nodes, rounded corners,
+    text depth=+.3ex, fill=white, draw},
+  header/.style={%
+    inner ysep=+1.5em,
+    append after command={
+      \pgfextra{\let\TikZlastnode\tikzlastnode}
+      node [header node] (header-\TikZlastnode) at (\TikZlastnode.north) {#1}
+      % the next node contains both \tikzlastnode and its header
+      % this is needed so that h-<name> can be used to connect lines
+      node [span=(\TikZlastnode)(header-\TikZlastnode)]
+           at (fit bounding box) (h-\TikZlastnode) {}
+    }
+  },
+}
+
+
+\newcommand{\dataset}{{\cal D}}
+\newcommand{\fracpartial}[2]{\frac{\partial #1}{\partial  #2}}
+
+\usepackage{xcolor}
+\definecolor{onyx}{HTML}{393E41}
+\definecolor{redviolet}{HTML}{8B2635}
+\definecolor{munsellblue}{HTML}{4B88A2}
+\definecolor{maxpurple}{HTML}{7E2E84}
+\hypersetup{
+    hidelinks,
+    citecolor={green!50!black},
+    urlcolor={blue!80!black}
+}
+
+
+% Heading arguments are {volume}{year}{pages}{submitted}{published}{author-full-names}
+
+\jmlrheading{1}{2000}{1-48}{4/00}{10/00}{Authors}
+
+% Short headings should be running head and authors last names
+
+\ShortHeadings{Paper Title}{Authors}
+\firstpageno{1}
+
+\begin{document}
+
+\title{Paper Title}
+
+\author{Authors}
+
+\editor{Editor}
+
+\maketitle
+
+\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+TODO
+\end{abstract}
+
+\begin{keywords}
+\end{keywords}
+
+\section{Introduction}
+
+\begin{itemize}
+    \item Latent SDEs are a recent technique that combines generative machine learning with stochastic differential equations
+    \item Promise of many advantages to recurrent techniques for stochastic time series: model entirely expressed as SDE \(\implies\) arbitrary discretization, elegant formulation, better analysis of model, constraint "it is an SDE" often useful
+    \item Potential applications, for instance, in paleoclimatology
+    \item Goal: match probability distribution of data with distribution of SDEs
+    \item We show that latent SDEs do not match the probability distribution, in particular cannot replicate the diffusion
+    \item First thorough experimental investigation of latent SDE behavior
+    \item Explain why and propose solution
+\end{itemize}
+
+\section{Related Work}
+Neural SDEs are probabilistic machine learning methods, a general term for any machine learning method where the model yields a probability distribution. In different applications of the same method, this distribution may have a different meaning to the modeler. Probabilistic machine learning methods are often used for uncertainty quantification within a Bayesian framework.
+
+A standard probabilistic machine learning method is the Gaussian Process (GP) \citep{williams2006gaussian}. A GP is a generalized Gaussian distribution over the path space. GPs always have Gaussian marginals, making their distribution easy to reason about (whereas the distribution of an SDE is hard to reason about) but limiting their modeling capacity. As such, they are often used for uncertainty quantification and cannot be used for matching the probability distribution of an arbitrary stochastic time series.
+
+Neural SDEs can also be used for uncertainty quantification. However, we use them for something else: we aim to match the probability distribution of the model to the \enquote{distribution of the data}. This is the goal of generative machine learning. Generative machine learning methods add a framework around the generator, in this case, a neural SDE, so that they can learn from data in an unsupervised way. We do not propose a new method but look into applying one of two already existing methods to the problem: SDE-GANs \citep{kidgergan} and latent neural SDEs \citep{li2020scalable}. Neural SDEs can be viewed as an extension of neural ordinary differential equations (neural ODEs) \citep{chen2018neural}, but neural ODEs are not generative or otherwise probabilistic models.
+
+Score-based diffusion models are a recent trend involving stochastic differential equations and generative machine learning \citep{song2020score}. The methods used in these models are interested in a probability distribution induced through the marginals of an SDE at some point. A data sample is an element of the SDE's state space. In contrast, neural SDEs are interested in the probability distribution of an SDE on the path space. A data sample is a path over the SDE's state space.
+
+The main contributions of this thesis are a thorough investigation of applying the latent neural SDE method proposed by \cite{li2020scalable} to datasets similar to paleoclimate data. Other papers extend that same paper. We only mention published papers or papers accepted to workshops, as many preprints exist. \cite{fagin2023latent} apply latent SDEs to data from astrophysics. They use them as a drop-in replacement for Gaussian Processes, so the noise is interpreted as uncertainty. \cite{xu} consider latent SDEs with a fixed diffusion, a continuous analog of Bayesian recurrent neural networks. \cite{kidgerefficient} introduce a reversible Heun solver for differential equations and train a latent neural SDE on an air quality data set from Beijing. \cite{hasan2021identifying} propose a different latent SDE framework to recover a mapping from one high-dimensional probabilistic space to another.
+
+\section{Latent SDEs}
+
+\newsavebox{\dataplot}
+\sbox{\dataplot}{%
+\input{images/plots/flowchart_data.tikz}
+}
+
+\newsavebox{\posteriorplot}
+\sbox{\posteriorplot}{%
+\input{images/plots/flowchart_posterior.tikz}
+}
+
+\newsavebox{\priorplot}
+\sbox{\priorplot}{%
+\input{images/plots/flowchart_prior.tikz}
+}
+
+\newsavebox{\firstprior}
+\sbox{\firstprior}{%
+\input{images/plots/flowchart_prior_1.tikz}
+}
+\newsavebox{\secondprior}
+\sbox{\secondprior}{%
+\input{images/plots/flowchart_prior_2.tikz}
+}
+
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1cm and 1.2cm,
+    nodes={align=center},
+    ortho/install shortcuts]
+  \node[basic box=redviolet, header=Data Sample \(x_{t_i} \sim p(\cdot)\), anchor=north]
+    (data) {
+        \scalebox{0.5}{
+            \usebox{\dataplot}
+        }
+    };
+  \node[basic box=munsellblue, header=Posterior Samples \(z_{t_i} \sim q(\cdot | x_{t_i})\), anchor=north, below of=data, shift=(down:y_node_dist*3.5)]
+    (posterior) {
+        \scalebox{0.5}{
+            \usebox{\posteriorplot}
+        }
+    };
+  \node [basic box=maxpurple, left=40pt of (data.south west)(posterior.north west)]
+    (encode) {encode\\give context};
+  \node [basic box=maxpurple, right=40pt of (data.south east)(posterior.north east)]
+    (sample) {likelihood \(p(x_{t_i} | z_{t_i})\)};
+  \path[->]
+    (data.west) edge[->, very thick, bend right] (encode.north)
+    (encode.south) edge[->, very thick, bend right] (posterior.west)
+    (posterior.east) edge[->, very thick] (sample.south west)
+    (data.east) edge[->, very thick] (sample.north west)
+    ;
+  \end{tikzpicture}
+\end{center}
+\caption{The data sample is encoded and given as the context \(\color{munsellblue}\phi\) to the posterior SDE, which yields a probability distribution. The likelihood of the data given realizations of the distribution is maximized in training.} 
+\label{fig:posterior}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1cm and 1.2cm,
+    nodes={align=center},
+    ortho/install shortcuts]
+  \node[basic box=munsellblue, header=Posterior Samples \(z_{t_i} \sim q(\cdot | x_{t_i})\), anchor=north]
+    (posterior) {
+        \scalebox{0.5}{
+            \usebox{\firstprior}
+        }
+    };
+  \node[basic box=onyx, header=Prior Samples \(y_{t_i} \sim q(\cdot)\), anchor=north, below of=data, shift=(down:y_node_dist*3.5)]
+    (prior) {
+        \scalebox{0.5}{
+            \usebox{\secondprior}
+        }
+    };
+  \node [basic box=maxpurple, left=40pt of (posterior.west)]
+    (encode) {encode\\give context};
+  \node [basic box=maxpurple, right=40pt of (posterior.south east)(prior.north east)]
+    (sample) {KL divergence\\ \(D_{KL}(z_{t_i} || y_{t_i})\)};
+  \path[->]
+    (encode.east) edge[->, very thick] (posterior.west)
+    (posterior.east) edge[->, very thick] (sample.north west)
+    (prior.east) edge[->, very thick] (sample.south west)
+    ;
+  \end{tikzpicture}
+\end{center}
+\caption{The distance between the posterior SDE and the prior SDE is quantified by the KL divergence, which is minimized in training.} 
+\label{fig:prior}
+\end{figure}
+
+Comparing the probability distribution of a data set to an SDE is intractable: finding the probability distribution of the data would mean we have already solved the problem. Even the probability distribution of a general neural SDE is intractable (there is no closed form), as we can only sample from the distribution using an SDE solver. Generative machine learning algorithms have been considered to match the distributions and fit an SDE to data. Two major forms of generative models for SDEs have been considered: latent neural SDEs and SDE-GANs. We consider latent SDEs.
+
+Latent neural SDEs \citep{li2020scalable} \cite[see also][82-84]{kidgerthesis} are generative models that aim to reproduce the probability distribution of a data set. A latent neural SDE consists of two neural SDEs: the posterior and the prior. We start with an informal explanation of both SDEs and precisely define the model later. We also refer to latent neural SDEs as latent SDEs.
+\paragraph{Posterior SDE.}
+The drift of the posterior SDE is parameterized by context, which is time-dependent information that is computed using an input trajectory from the data set. We will discuss how we compute the context later. First, we view it as some external input representing the data. In general, we can write the posterior SDE as
+\begin{align*}
+  % d \tilde{u}(t) &= f_{\color{blue}\theta}(\tilde{u}(t), t) dt + g_{\color{blue}\theta}(\tilde{u}(t), t) d B_t \tag{prior} \\
+  d u(t) &= h_{ {\color{redviolet}\theta} \cup {\color{munsellblue}\phi}}(u(t), t) dt + g_{\color{redviolet}\theta}(u(t), t) d B_t \tag{posterior}
+\end{align*}
+where \({\color{redviolet}\theta}\) are the latent neural SDE's parameters, and \({\color{munsellblue}\phi}\) is the context. Given \({\color{munsellblue}\phi}\), the posterior SDE induces a probability distribution that aims to reconstruct and trace the data. We illustrate this in \cref{fig:posterior}. In training, we draw samples from this distribution and minimize their distance to the input data, corresponding to maximizing a likelihood in an observation model.
+
+To minimize the distance between the data and the posterior, we can maximize the likelihood of an observation model we define around the data. For instance, suppose we have data \(x_{t_i}\) and a run of the posterior returns the path \(z_{t_i}\). As an observation model, we define a distribution \(\mathcal{N}(z_{t_i}, \sigma^2)\) for a fixed variance \(\sigma^2\). We write \(p(x_{t_i} | z_{t_i})\) for the likelihood of the observations given the model's output. For the entire path, it makes sense to quantify this as a log-likelihood (like \cite{li2020scalable}, but as an integral):
+\[
+  \mathcal{L}_E = \int_{0}^T \log p(x_{t} | z_{t}) dt.
+\]
+Alternatively, but not equivalently, we can minimize a squared distance between the model and data \citep[83]{kidgerthesis}:
+\[
+  \mathcal{L}_E = \int_{0}^T (x_{t} - z_{t})^2 dt.
+\]
+The posterior alone cannot model the data's probability distribution: it always needs data as input (through the context) and thus is not a generative model alone. Additionally, if we were to train the posterior alone, its diffusion would eventually be zero, as the posterior would repeat the data we input.
+
+\paragraph{Prior SDE.}
+The prior SDE aims to model the data distribution without further input. Its general form is
+\begin{align*}
+  d \tilde{u}(t) &= f_{\color{redviolet}\theta}(\tilde{u}(t), t) dt + g_{\color{redviolet}\theta}(\tilde{u}(t), t) d B_t \tag{prior}
+\end{align*}
+which lacks the context \({\color{munsellblue}\phi}\). Note that while its drift is different from the posterior, the prior and posterior share the same diffusion. Because of this, we can quantify the \emph{Kullback-Leibler (KL) divergence} between both SDEs, which is a measure of the difference between their probability distributions \citep{li2020scalable, tzen2019neural}. Note that this is the KL divergence of the distributions over the path space, not the KL divergence over the marginals.
+
+We can minimize the KL divergence while training to align the prior to the posterior, as illustrated in \cref{fig:prior}. When we minimize the KL divergence between the prior and posterior, the posterior influences the prior to match the data distribution, and the prior also influences the posterior to prevent its diffusion from converging to zero.
+
+We train the posterior and prior SDEs in parallel and minimize the KL divergence while maximizing the log-likelihood. After training, the posterior SDE is supposed to fit the data, while the prior SDE is supposed to fit the posterior SDE. Thus, the posterior SDE is used \enquote{as a bridge} between the prior SDE and the data set to align the prior SDE's distribution to the distribution of the data set.
+
+\paragraph{Encoder and Projector.}
+The encoder transforms a given path from data into the context \({\color{munsellblue}\phi}\); the projector transforms a path sampled from the SDEs back into data space. Theoretically, the encoder is unnecessary, as we could directly set \({\color{munsellblue}\phi} = x_{t_i}\). However, choosing the encoder as a recurrent neural network that has seen future observations in the data is helpful, and the literature always does this \citep{kidgerthesis,li2020scalable}. The intuitive advantage of an encoder is that the posterior SDE can look as far into the future as it wants to.
+
+An RNN-based encoder works like this: suppose we are given the regularly-sampled time series \(x_{t_1}, \ldots, x_{t_N}\). We run the encoder on the time series in reverse, which outputs the context \(a_{t_1}, \ldots, a_{t_N}\). This means the output \(a_{t_i}\) depends on the input values \(x_{t_i}, x_{t_{i+1}}, \ldots, x_{t_N}\). To integrate the posterior SDE based on the data \(x\), at time \(t \in [t_i, t_{i+1})\), we set \({\color{munsellblue}\phi} = a_{t_i}\).
+
+We have yet to mention that the latent space (containing \(y_{t_i}\) and \(z_{t_i}\)) and data space (containing \(x_{t_i}\)) might differ. For instance, the latent space could have more dimensions than the data space. In this case, we need a projector in the architecture. We will choose it as a fixed vector that selects the first dimension of the latent space, whereas \cite{li2020scalable} choose it as a trainable linear combination from the latent dimensions. We discuss these choices in the experimental section.
+
+\paragraph{Training Objective.}
+With prior and posterior as above, the KL divergence is
+\[
+  \mathcal{L}_{KL} = D_{KL}(\mu_q || \mu_p) = \mathbb{E}_{B_t} \int_0^T \frac{1}{2} \left\lVert \frac{ h_{
+    {\color{redviolet}\theta} \cup {\color{munsellblue}\phi}}(u(t), t) -
+  f_{\color{redviolet}\theta}(u(t), t) }{ g_{\color{redviolet}\theta}(u(t), t) } \right\rVert^2_2 dt.
+\]
+Here, \(\mu_q\) is the probability distribution of the posterior, and \(\mu_p\) of the prior SDE, and we integrate along a trajectory \(u(t)\) of the posterior along Brownian motion \(B_t\) \citep{li2020scalable} \citep[83]{kidgerthesis}.
+
+We train the distance between data and posterior and the distance between prior and posterior together, yielding the objective
+\[
+  \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \mathcal{L}_{KL}).
+\]
+This objective can be interpreted as a so-called evidence lower bound (ELBO) from variational inference, making a latent neural SDE a Bayesian variational autoencoder as first proposed by \citep{autoencoding}. The names \enquote{prior} and \enquote{posterior} come from the variational inference framework. In this context, the posterior is not the actual posterior; it is only the approximate posterior, but we call it the posterior as that is an unwieldy name.
+
+To have more control over the model, it is desirable to weigh the KL-divergence using a tunable factor \(\beta\) \citep{higgins2016beta, li2020scalable}: \[ \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \beta \mathcal{L}_{KL}). \] We explore the selection of this hyperparameter in \cref{sec:experiments}.
+
+% \subsubsection{SDE-GANs}
+
+% Because latent neural SDEs are the SDE analog of variational autoencoders, it is natural to conceive of SDE analogs of other generative machine learning methods. The most successful generative method is the Generative Adversarial Network (GAN) \cite{bond2021deep}, and \citeauthor{kidgergan} propose the SDE-GAN \cite{kidgergan}. We keep this introduction shorter because we do not work with SDE-GANs in this thesis (see \cref{sec:which} for the reasons).
+
+% GANs also consist of two components: the generator and the discriminator. The generator generates random samples from its distribution, while the discriminator takes samples as input and outputs a yes/no verdict. The discriminator is trained to differentiate samples from the data set from samples that were output by the generator. The generator is trained to trick the discriminator, making it as hard as possible for the discriminator to differentiate its output from actual data. These objectives give a min-max loss function \cite{bond2021deep}. Wasserstein GANs are a modification to classic GANs that have a loss function that is more interpretable and suffers less from training instability \cite{arjovsky2017wasserstein}.
+
+% SDE-GANs follow the Wasserstein GAN architecture. The generator is a neural SDE, the target SDE we want to fit to the data. The discriminator could be chosen as multiple architectures; \citeauthor{kidgergan} choose it to be a neural controlled differential equation (neural CDE), which intuitively is a neural SDE that can take a sample as an input and come to a binary conclusion \cite{kidgergan}.
+
+
+\section{Experimental Setup}
+
+We use the same setup already used in \cite{li2020scalable}, except for the choices below.
+
+\paragraph{Latent SDE architecture.}
+We use a one-dimensional latent space for data generated from a model with a one-dimensional state space. In contrast, \cite{li2020scalable} use a four-dimensional latent space for data generated from a model with a two-dimensional state space. They use a trainable projector, whereas we use a projector that selects the first dimension of the SDE. We choose this to make the model more transparent. We use \textit{discretize-then-optimize} gradients \cite[cf.]{kidgerefficient} with an Euler-Maruyama solver.
+
+\citeauthor{li2020scalable} use a final sigmoid activation in the diffusion \cite{li2020scalable}. If set to that architecture, the sigmoid limits its output to a maximum value of one, which it will fully maximize in our experiments. To remove the limit on the diffusion's value but to keep the sigmoid's limiting effect, we add another layer with a final softplus activation to keep the output positive. We also attempted to leave out the sigmoid activation altogether, but this led to instabilities while training.
+
+As in \cite{li2020scalable}, the prior and posterior SDEs are time-independent, so they do not receive the current time \(t\) as input, only the current position in state space \(u(t)\). The encoder is also time-independent, so it does not receive time information alongside the data.
+
+\paragraph{Hyperparameter search.}
+The main hyperparameter to vary in a latent SDE is the KL-weighting factor \(\beta\). We sweep \(\beta\) from \(0.01\) to \(10000\) in increments of factor \(10\). We train for 10000 epochs and use a linear KL-annealing schedule \cite{fu2019cyclical} that ramps up beta from zero to its final value in 1000 epochs. We performed informal experiments without a KL scheduler and found that training was less stable. We use a larger learning rate decay factor, yielding a slower decay, and train the model with more epochs.
+
+\paragraph{Training and test set.}
+The model trains on the timespan \([0, t_{\text{train}})\), which can be different for each model. We set \(t_{\text{train}} = 4\) for the energy balance model. To evaluate the statistics of the trained model, we use \([0.5 t_{\text{train}}, t_{\text{train}})\) as the train set and \([t_{\text{train}}, 5 t_{\text{train}})\) as the test set because we are less interested in the evolution from the Gaussian initial state and more interested in the long-run behavior of the system. We also show plots where we consider the first half of the training timespan.
+
+\paragraph{Data preprocessing.}
+We normalize the data.
+We do not corrupt or perturb the data after generation, although we still use an observation model based on a log-likelihood. It is out of the scope of this experiment to answer whether latent SDEs can reconstruct dynamics from data that was noisily measured. The log-likelihood model worked better than squared distances, and we chose a variance of \(0.01\) to match \citeauthor{li2020scalable} \citep{li2020scalable}. Changing the variance will impact the values for \(\beta\).
+
+\paragraph{Analysis of results.}
+We compute the marginals as histograms for the prior SDEs and the data. To quantify how close these are numerically, we use the \emph{Wasserstein distance}, which intuitively represents the cost of turning one pile into another by moving the ground \citep{panaretos2019statistical}. The Wasserstein distances of the train and test set on the Ornstein-Uhlenbeck data set, depending on the hyperparameter \(\beta\), are shown in \cref{fig:first_wasserstein}.
+
+
+\begin{figure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/beta_exploration_0/marginals_2_train_001.pgf}
+        \caption{Marginals, \(\beta=0.01\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/beta_exploration_0/marginals_2_train_1.pgf}
+        \caption{Marginals, \(\beta=1\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/beta_exploration_0/marginals_2_train_100.pgf}
+        \caption{Marginals, \(\beta=100\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/beta_exploration_0/marginals_2_train_10000.pgf}
+        \caption{Marginals, \(\beta=10000\)}
+    \end{subfigure}
+    \caption{EBM: Marginals for \(\beta\) in interval \((0, t_{\text{train}})\)}
+    \label{fig:first_marginals}
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+    \input{images/plots/bistable/beta_exploration_0/custom_wasserstein.pgf}
+    \end{center}
+    \caption{EBM: Wasserstein distance for \(\beta\)}
+    \label{fig:first_wasserstein}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+    \input{images/plots/bistable/beta_exploration_0/custom_tipping.pgf}
+    \end{center}
+    \caption{EBM: Tipping rate for \(\beta\)}
+    \label{fig:first_tipping_rate}
+\end{figure}
+
+\section{Experiments}
+
+We plot the marginals in \cref{fig:first_marginals}. There seems to be a sweet spot for \(\beta\) between \(10^1\) and \(10^3\), where the Wasserstein distances are much lower. For \(\beta\) that are smaller or larger, the histograms of the latent SDEs become more concentrated on the attractor and less broadly around it. This may suggest that the diffusion size in the latent SDE is smaller there, which we confirm later.
+
+The Wasserstein distances of the test set are almost the same as those of the training set because we chose a one-dimensional latent SDE with the knowledge that the underlying model is one-dimensional.
+
+Next, we investigate the tipping rates in \cref{fig:first_tipping_rate}. We can immediately see that the tipping rates of all latent SDEs are too low, less than half of the EBM's tipping rates. With values of \(\beta\) that are too high or too low, the tipping rates decrease alongside the size of the diffusion.
+
+\todo{What are the consequences? What does this mean?}
+
+\section{Investigation of Noise Underestimation}
+
+We have observed that latent SDEs underestimate the size and cannot fit the shape of the diffusion. What is the role of diffusion in the training procedure of latent SDEs? Recall the loss function of a latent SDE
+\[
+  \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \beta \mathcal{L}_{KL}).
+\]
+The size of the diffusion term, as shown in \cref{fig:first_diffusion_size}, significantly decreases with high values of \(\beta\). This is surprising when considering the formulation of the training loss: as the KL divergence is proportional to the inverse of the diffusion and \(\beta\) increases its importance, we expected the size of the diffusion term to continue to increase. A possible explanation would be that as \(\beta\) increases so much that the log-likelihoods become unimportant, there is no need to increase the diffusion if prior and posterior are so close that their difference is almost at zero. An extreme case of this is that the prior and posterior are equal, making the size of the diffusion arbitrary.
+
+One can expect that for very small values of \(\beta\), the magnitude of the trained diffusion will be close to zero, as only the posterior loss \(\mathcal{L}_E\) is minimized. Adding diffusion will compromise its accuracy as the posterior traces a data sample. In this extreme case, the diffusion size of the latent SDE has nothing to do with the amount of noise in the data.
+
+\begin{figure}
+    \begin{center}
+    \input{images/plots/bistable/noise_exploration/custom_wasserstein.pgf}
+    \end{center}
+    \caption{Wasserstein distance for EBM noise levels}
+    \label{fig:noise_wasserstein}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+    \input{images/plots/bistable/noise_exploration/custom_tipping.pgf}
+    \end{center}
+    \caption{Tipping rate for EBM noise levels}
+    \label{fig:noise_tipping_rate}
+\end{figure}
+
+\begin{figure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/noise_exploration/training_info_data_noise_level_kl.pgf}
+        \caption{KL divergence for EBM noise levels}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/noise_exploration/training_info_data_noise_level_logpxs.pgf}
+        \caption{Log-Likelihood for EBM noise levels}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \centering
+        \input{images/plots/bistable/noise_exploration/training_info_data_noise_level_noise.pgf}
+        \caption{Diffusion size of latent SDE for EBM noise levels}
+    \end{subfigure}
+    \caption{Training information for EBM noise levels}
+    \label{fig:noise_kl_logpxs}
+\end{figure}
+
+\begin{figure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/noise_exploration/diffusion_balance_2_train_001.pgf}
+        \caption{Diffusion balance, \(\beta=0.01\)}
+    \end{subfigure}
+    \begin{subfigure}{0.5\textwidth}
+        \centering
+        \input{images/plots/bistable/noise_exploration/diffusion_balance_2_train_1.pgf}
+        \caption{Diffusion balance, \(\beta=1\)}
+    \end{subfigure}
+    \caption{EBM: The balance between KL divergence and log-likelihood yields the diffusion size}
+    \label{fig:balance}
+\end{figure}
+
+For other values of \(\beta\), it is unclear how the data noise and the latent SDE's diffusion size relate. We check if they have any relationship by varying the diffusion size of the energy balance model and training a latent SDE with \(\beta=10\) on the data. The results are shown in \cref{fig:noise_wasserstein} and \cref{fig:noise_tipping_rate}, where \enquote{EBM noise level} is the size of the constant in the linear diffusion term of the energy balance model that is generating the data. We observe a correspondence between this and the size of the latent SDE's diffusion, although the latent SDE's diffusion is always smaller.
+
+It is more enlightening to plot the size of the KL divergence, log-likelihood, and diffusion of the latent SDE trained on EBM data with different noise levels, as in \cref{fig:noise_kl_logpxs}. First, we observe that the data gets harder to approximate with increasing noise levels as both the KL divergence and log-likelihoods worsen. Like the KL divergence and log-likelihood, the latent SDE's diffusion size grows almost linearly with the EBM noise level.
+
+This gives rise to the following explanation: For latent SDEs, there is a \enquote{balance point} between the KL divergence and the log-likelihood. \cref{fig:noise_kl_logpxs} suggests that the diffusion size is chosen according to this balance while training. Increasing the diffusion size worsens the log-likelihoods, and decreasing it worsens the KL divergence. To show this, we now use the latent SDE for \(\beta=1\) and replace the diffusion with constant values from zero to two in \cref{fig:balance}. The actual size of the final model's diffusion, as seen in \cref{fig:value_of_diffusion}, is correlated with the point where these two scores meet. The harder the problem becomes to predict, the further this point moves to the right, leading to the relationship between the EBM's noise level and the latent SDE's diffusion size we observed.
+
+
+\section{Injecting Noise Into Latent SDEs}
+\label{sec:noise}
+
+As an attempt to match the tipping rate of the data as well as the marginals, we amend the loss function to include a term for the size of the diffusion:
+\begin{align*}
+    \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \beta \mathcal{L}_{KL} + \gamma \mathcal{L}_G) \\
+    \text{where } \mathcal{L}_G = \int_0^T g_{\theta}(u(t), t) dt.
+\end{align*}
+
+Alternatively, assuming we would know the desired value of \(\mathcal{L}_N\), we could use a regularization-like penalty:
+\begin{align*}
+    \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \beta \mathcal{L}_{KL} + \gamma (\mathcal{L}_G - g_{\text{target}})^2).
+\end{align*}
+However, we do not know \(g_{\text{target}}\) in general, so this adds two hyperparameters instead of one. Thus, we choose the first loss function for simplicity. We compute \(\mathcal{L}_G\) just like \(\mathcal{L}_{KL}\), adding another dimension in the integration of the posterior \cite[][cf.]{li2020scalable}. For this experiment, we choose \(\beta=10\).
+
+\begin{figure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/training_info_noise_penalty_noise.pgf}
+        \caption{Noise penalty \(\gamma\) injects noise}
+        \label{fig:penalty_diffusion_size}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/tipping_5_extrapolation_200.pgf}
+        \caption{Tipping for \(\gamma=200\)}
+        \label{fig:tipping_gamma_200}
+    \end{subfigure}
+    \caption{EBM-Penalty: Injecting noise}
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+    \input{images/plots/bistable/injecting_noise/custom_wasserstein.pgf}
+    \end{center}
+    \caption{EBM-Penalty: Wasserstein distance for \(\gamma\)}
+\label{fig:gamma_wasserstein}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+    \input{images/plots/bistable/injecting_noise/custom_tipping.pgf}
+    \end{center}
+    \caption{EBM-Penalty: Tipping rate for \(\gamma\)}
+    \label{fig:gamma_tipping_rate}
+\end{figure}
+
+\begin{figure}
+    \begin{subfigure}{\textwidth}
+        \begin{center}
+            \input{images/plots/bistable/injecting_noise/data_5_extrapolation_big.pgf}
+        \end{center}
+        \caption{Noisy EBM}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \begin{center}
+            \input{images/plots/bistable/injecting_noise/prior_5_extrapolation_big.pgf}
+        \end{center}
+        \caption{Latent SDE Prior, \(\beta=10, \gamma=200\)}
+    \end{subfigure}
+    \caption{EBM-Penalty: Comparison of best result against ground truth}
+\end{figure}
+
+In \cref{fig:penalty_diffusion_size}, we observe that increasing \(\gamma\) will increase the size of the diffusion term. Its effect on the tipping rate is shown in \cref{fig:gamma_tipping_rate}, which immediately correlates to the diffusion size. Relating the Wasserstein distance to \(\gamma\) in \cref{fig:gamma_wasserstein}, we cannot observe a clear pattern but see values similar to those that we would obtain by setting \(\gamma=0\).
+
+\begin{figure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_0.pgf}
+        \caption{Value of drift, \(\gamma=0\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_100.pgf}
+        \caption{Value of drift, \(\gamma=100\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_200.pgf}
+        \caption{Value of drift, \(\gamma=200\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_300.pgf}
+        \caption{Value of drift, \(\gamma=300\)}
+    \end{subfigure}
+    \caption{EBM-Penalty: Value of drift for \(\gamma\)}
+    \label{fig:value_of_drift_gamma}
+\end{figure}
+
+\begin{figure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_diffusion_0.pgf}
+        \caption{Value of diffusion, \(\gamma=0\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_diffusion_100.pgf}
+        \caption{Value of diffusion, \(\gamma=100\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_diffusion_200.pgf}
+        \caption{Value of diffusion, \(\gamma=200\)}
+    \end{subfigure}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \input{images/plots/bistable/injecting_noise/func_diffusion_300.pgf}
+        \caption{Value of diffusion, \(\gamma=300\)}
+    \end{subfigure}
+    \caption{EBM-Penalty: Value of diffusion for \(\gamma\)}
+    \label{fig:value_of_diffusion_gamma}
+\end{figure}
+
+Again, we also compare the models directly in \cref{fig:value_of_drift_gamma} and \cref{fig:value_of_diffusion_gamma}. We observe that both drift and diffusion increase in amplitude when increasing \(\gamma\). The latent SDE trained with \(\gamma = 200\) matches the tipping rate and Wasserstein distances quite well. However, the amplitude of drift and diffusion terms are larger, and the diffusion term is constant instead of linearly increasing.
+
+We conclude that by setting the hyperparameter \(\gamma\) to the correct value, we can synthesize an SDE that matches Wasserstein distances and tipping rates of the data relatively well for the noisy energy balance model. In this setup, \(\gamma\) cannot be learned automatically, leaving us with two hyperparameters that must be manually tuned. On the other hand, with enough data, the correct parameters can be obtained just by analyzing the data without any further knowledge of the underlying dynamics.
+
+
+% Acknowledgements should go at the end, before appendices and references
+
+% \acks{We would like to acknowledge support for this project
+% from the National Science Foundation (NSF grant IIS-9988642)
+% and the Multidisciplinary Research Program of the Department
+% of Defense (MURI N00014-00-1-0637). }
+
+% Manual newpage inserted to improve layout of sample file - not
+% needed in general before appendices/bibliography.
+
+\bibliography{paper}
+
+\end{document}
