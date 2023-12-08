@@ -142,7 +142,7 @@ Neural SDEs can also be used for uncertainty quantification. However, we use the
 
 Score-based diffusion models are a recent trend involving stochastic differential equations and generative machine learning \citep{song2020score}. The methods used in these models are interested in a probability distribution induced through the marginals of an SDE at some point. A data sample is an element of the SDE's state space. In contrast, neural SDEs are interested in the probability distribution of an SDE on the path space. A data sample is a path over the SDE's state space.
 
-The main contributions of this thesis are a thorough investigation of applying the latent neural SDE method proposed by \cite{li2020scalable} to datasets similar to paleoclimate data. Other papers extend that same paper. We only mention published papers or papers accepted to workshops, as many preprints exist. \cite{fagin2023latent} apply latent SDEs to data from astrophysics. They use them as a drop-in replacement for Gaussian Processes, so the noise is interpreted as uncertainty. \cite{xu} consider latent SDEs with a fixed diffusion, a continuous analog of Bayesian recurrent neural networks. \cite{kidgerefficient} introduce a reversible Heun solver for differential equations and train a latent neural SDE on an air quality data set from Beijing. \cite{hasan2021identifying} propose a different latent SDE framework to recover a mapping from one high-dimensional probabilistic space to another.
+The main contribution of this paper is a thorough investigation and modification of the latent neural SDE method proposed by \cite{li2020scalable}. Other papers extend that same paper. We only mention published papers or papers accepted to workshops, as many preprints exist. \cite{fagin2023latent} apply latent SDEs to data from astrophysics. They use them as a drop-in replacement for Gaussian Processes, so the noise is interpreted as uncertainty. \cite{xu} consider latent SDEs with a fixed diffusion, a continuous analog of Bayesian recurrent neural networks. \cite{kidgerefficient} introduce a reversible Heun solver for differential equations and train a latent neural SDE on an air quality data set from Beijing. \cite{hasan2021identifying} propose a different latent SDE framework to recover a mapping from one high-dimensional probabilistic space to another.
 
 \section{Latent SDEs}
 
@@ -314,12 +314,12 @@ For the simplest reproduction of our results, we also considered the Ornstein-Uh
     du(t) = u(t) dt + d B_t.
 \]
 
-For the neural SDEs, we use the same setup already used in \cite{li2020scalable}, except for the choices below.
+For the latent SDEs, we use the same setup already used in \cite{li2020scalable}, except for the choices below.
 
 \paragraph{Latent SDE architecture.}
 We use a one-dimensional latent space for data generated from a model with a one-dimensional state space. In contrast, \cite{li2020scalable} use a four-dimensional latent space for data generated from a model with a two-dimensional state space. They use a trainable projector, whereas we use a projector that selects the first dimension of the SDE. We choose this to make the model more transparent. We use \textit{discretize-then-optimize} gradients \cite[][cf.]{kidgerefficient} with an Euler-Maruyama solver.
 
-\citeauthor{li2020scalable} use a final sigmoid activation in the diffusion \cite{li2020scalable}. If set to that architecture, the sigmoid limits its output to a maximum value of one, which it will fully maximize in our experiments. To remove the limit on the diffusion's value but to keep the sigmoid's limiting effect, we add another layer with a final softplus activation to keep the output positive. We also attempted to leave out the sigmoid activation altogether, but this led to instabilities while training.
+\cite{li2020scalable} use a final sigmoid activation in the diffusion. If set to that architecture, the sigmoid limits its output to a maximum value of one, which it will fully maximize in our experiments. To remove the limit on the diffusion's value but to keep the sigmoid's limiting effect, we add another layer with a final softplus activation to keep the output positive. We also attempted to leave out the sigmoid activation altogether, but this led to instabilities while training.
 
 As in \cite{li2020scalable}, the prior and posterior SDEs are time-independent, so they do not receive the current time \(t\) as input, only the current position in state space \(u(t)\). The encoder is also time-independent, so it does not receive time information alongside the data.
 
@@ -379,7 +379,7 @@ We compute the marginals as histograms for the prior SDEs and the data. To quant
     \label{fig:first_tipping_rate}
 \end{figure}
 
-\section{Experiments}
+\section{Hyperparameter Search}
 
 We plot the marginals in \cref{fig:first_marginals}. There seems to be a sweet spot for \(\beta\) between \(10^1\) and \(10^3\), where the Wasserstein distances are much lower. For \(\beta\) that are smaller or larger, the histograms of the latent SDEs become more concentrated on the attractor and less broadly around it. This may suggest that the diffusion size in the latent SDE is smaller there, which we confirm later.
 
