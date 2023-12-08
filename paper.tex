@@ -289,7 +289,7 @@ We train the distance between data and posterior and the distance between prior 
 \]
 This objective can be interpreted as a so-called evidence lower bound (ELBO) from variational inference, making a latent neural SDE a Bayesian variational autoencoder as first proposed by \citep{autoencoding}. The names \enquote{prior} and \enquote{posterior} come from the variational inference framework. In this context, the posterior is not the actual posterior; it is only the approximate posterior, but we call it the posterior as that is an unwieldy name.
 
-To have more control over the model, it is desirable to weigh the KL-divergence using a tunable factor \(\beta\) \citep{higgins2016beta, li2020scalable}: \[ \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \beta \mathcal{L}_{KL}). \] We explore the selection of this hyperparameter in \cref{sec:experiments}.
+To have more control over the model, it is desirable to weigh the KL-divergence using a tunable factor \(\beta\) \citep{higgins2016beta, li2020scalable}: \[ \max_{\theta, \phi} \mathbb{E}_{x_{\text{data}}} (\mathcal{L}_E - \beta \mathcal{L}_{KL}). \] We explore the selection of this hyperparameter in the experimental section.
 
 % \subsubsection{SDE-GANs}
 
@@ -302,17 +302,29 @@ To have more control over the model, it is desirable to weigh the KL-divergence 
 
 \section{Experimental Setup}
 
-We use the same setup already used in \cite{li2020scalable}, except for the choices below.
+We consider two models: first, the zero-dimensional energy balance model
+\[
+    dT(t) = (a_1 + a_2 \tanh (T(t) - T_0) - a_3 T(t)^4) dt + 40 d B_t
+\]
+where \(a_1 = 235.175\), \(a_2 = 81.8\), \(a_3 = 3.402\), \(T_0 = 273\).
+These constants are similar to those found in the literature \citep{fraedrich1979catastrophes, ghil1976climate, sutera}. We have slightly increased the \(\alpha\) values to yield closer attractors for more frequent tipping behavior.
+
+For the simplest reproduction of our results, we also considered the Ornstein-Uhlenbeck process
+\[
+    du(t) = u(t) dt + d B_t.
+\]
+
+For the neural SDEs, we use the same setup already used in \cite{li2020scalable}, except for the choices below.
 
 \paragraph{Latent SDE architecture.}
-We use a one-dimensional latent space for data generated from a model with a one-dimensional state space. In contrast, \cite{li2020scalable} use a four-dimensional latent space for data generated from a model with a two-dimensional state space. They use a trainable projector, whereas we use a projector that selects the first dimension of the SDE. We choose this to make the model more transparent. We use \textit{discretize-then-optimize} gradients \cite[cf.]{kidgerefficient} with an Euler-Maruyama solver.
+We use a one-dimensional latent space for data generated from a model with a one-dimensional state space. In contrast, \cite{li2020scalable} use a four-dimensional latent space for data generated from a model with a two-dimensional state space. They use a trainable projector, whereas we use a projector that selects the first dimension of the SDE. We choose this to make the model more transparent. We use \textit{discretize-then-optimize} gradients \cite[][cf.]{kidgerefficient} with an Euler-Maruyama solver.
 
 \citeauthor{li2020scalable} use a final sigmoid activation in the diffusion \cite{li2020scalable}. If set to that architecture, the sigmoid limits its output to a maximum value of one, which it will fully maximize in our experiments. To remove the limit on the diffusion's value but to keep the sigmoid's limiting effect, we add another layer with a final softplus activation to keep the output positive. We also attempted to leave out the sigmoid activation altogether, but this led to instabilities while training.
 
 As in \cite{li2020scalable}, the prior and posterior SDEs are time-independent, so they do not receive the current time \(t\) as input, only the current position in state space \(u(t)\). The encoder is also time-independent, so it does not receive time information alongside the data.
 
 \paragraph{Hyperparameter search.}
-The main hyperparameter to vary in a latent SDE is the KL-weighting factor \(\beta\). We sweep \(\beta\) from \(0.01\) to \(10000\) in increments of factor \(10\). We train for 10000 epochs and use a linear KL-annealing schedule \cite{fu2019cyclical} that ramps up beta from zero to its final value in 1000 epochs. We performed informal experiments without a KL scheduler and found that training was less stable. We use a larger learning rate decay factor, yielding a slower decay, and train the model with more epochs.
+The main hyperparameter to vary in a latent SDE is the KL-weighting factor \(\beta\). We sweep \(\beta\) from \(0.01\) to \(10000\) in increments of factor \(10\). We train for 10000 epochs and use a linear KL-annealing schedule \citep{fu2019cyclical} that ramps up beta from zero to its final value in 1000 epochs. We performed informal experiments without a KL scheduler and found that training was less stable. We use a larger learning rate decay factor, yielding a slower decay, and train the model with more epochs.
 
 \paragraph{Training and test set.}
 The model trains on the timespan \([0, t_{\text{train}})\), which can be different for each model. We set \(t_{\text{train}} = 4\) for the energy balance model. To evaluate the statistics of the trained model, we use \([0.5 t_{\text{train}}, t_{\text{train}})\) as the train set and \([t_{\text{train}}, 5 t_{\text{train}})\) as the test set because we are less interested in the evolution from the Gaussian initial state and more interested in the long-run behavior of the system. We also show plots where we consider the first half of the training timespan.
